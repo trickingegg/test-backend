@@ -21,18 +21,22 @@ object BudgetService {
 
     suspend fun getYearStats(param: BudgetYearParam): BudgetYearStatsResponse = withContext(Dispatchers.IO) {
         transaction {
-            val query = BudgetTable
+            val allRecordsQuery = BudgetTable.select { BudgetTable.year eq param.year }
+
+            val total = allRecordsQuery.count()
+            val totalByType = allRecordsQuery.groupBy { it[BudgetTable.type] }
+                .mapValues { (_, rows) -> rows.sumOf { it[BudgetTable.amount] } }
+
+            val paginatedQuery = BudgetTable
                 .select { BudgetTable.year eq param.year }
+                .orderBy(BudgetTable.month to true, BudgetTable.amount to false)
                 .limit(param.limit, param.offset)
 
-            val total = query.count()
-            val data = BudgetEntity.wrapRows(query).map { it.toResponse() }
-
-            val sumByType = data.groupBy { it.type.name }.mapValues { it.value.sumOf { v -> v.amount } }
+            val data = BudgetEntity.wrapRows(paginatedQuery).map { it.toResponse() }
 
             return@transaction BudgetYearStatsResponse(
                 total = total,
-                totalByType = sumByType,
+                totalByType = totalByType,
                 items = data
             )
         }
