@@ -1,8 +1,9 @@
 create table budget
 (
-    id     serial primary key,
-    year   int  not null,
-    month  int  not null,
-    amount int  not null,
-    type   text not null
+    id       serial primary key,
+    year     int  not null,
+    month    int  not null,
+    amount   int  not null,
+    type     text not null,
+    authorId int references Author(ID)
 );
